@@ -231,7 +231,13 @@ export function runHgText(options: RunHgTextOptions) {
 
 /** Return whether this working-copy review should include unknown files. */
 function shouldIncludeUntrackedFiles(input: ExtensionVcsDiffInput) {
-  return !input.staged && input.options.excludeUntracked !== true;
+  // A two-revision comparison has no working-copy side, so current unknown files
+  // would make it report content outside the requested historical endpoints.
+  return (
+    !input.staged &&
+    input.options.excludeUntracked !== true &&
+    (!input.range || splitRange(input.range) === null)
+  );
 }
 
 /** Return whether one unknown path can become a Hunk-synthesized file diff. */

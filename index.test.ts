@@ -126,7 +126,7 @@ describe.skipIf(!hgAvailable)("Mercurial adapter integration", () => {
       hg(repo, "commit", "-m", "second", "file.txt");
       writeFileSync(join(repo, "file.txt"), "three\n");
       const rangeResult = await HgVcsAdapter.operations["working-tree-diff"]!.load(
-        { ...diffInput, range: "0..1", options: { excludeUntracked: true } },
+        { ...diffInput, range: "0..1" },
         { cwd: repo },
       );
       expect(rangeResult.patchText).toContain("+two");
@@ -146,6 +146,20 @@ describe.skipIf(!hgAvailable)("Mercurial adapter integration", () => {
     },
     HgAdapterIntegrationTestTimeoutMs,
   );
+
+  test("keeps unknown paths repo-root-relative from nested directories", async () => {
+    const repo = createTempHgRepo("hunk-hg-nested-");
+    const nested = join(repo, "nested");
+    mkdirSync(nested);
+    writeFileSync(join(nested, "unknown.txt"), "unknown\n");
+
+    const result = await HgVcsAdapter.operations["working-tree-diff"]!.load(
+      { kind: "vcs", staged: false, options: {} },
+      { cwd: nested },
+    );
+
+    expect(result.untrackedPaths).toEqual(["nested/unknown.txt"]);
+  });
 
   test("rejects staged reviews and omits stash support", async () => {
     const stagedInput = {
